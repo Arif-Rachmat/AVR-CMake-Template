@@ -1,0 +1,12 @@
+{
+    "configurations": [
+        {
+            "name": "AVR-GCC",
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-gcc-x64" // Change this to match your platform (e.g., "linux-gcc-x64" for Linux, "macos-gcc-x64" for macOS)
+        }
+    ],
+    "version": 4
+}

@@ -1,0 +1,10 @@
+# Ignore build directory
+build/
+
+# Ignore VS Code state and cache
+.vscode/*
+
+# Keep specific shared VS Code settings
+!.vscode/settings.json
+!.vscode/c_cpp_properties.json
+!.vscode/extensions.json

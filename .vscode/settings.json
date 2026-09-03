@@ -1,0 +1,7 @@
+{
+  "cmake.configureArgs": [
+    "-DCMAKE_TOOLCHAIN_FILE=${workspaceFolder}/cmake/avr-gcc.toolchain.cmake"
+  ],
+  "cmake.exportCompileCommands": true,
+  "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json"
+}
