@@ -25,7 +25,10 @@ jobs:
         sudo apt-get install -y gcc-avr binutils-avr avr-libc cmake ninja-build
         
     - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: |
+        cmake -B build -G Ninja \
+          -DCMAKE_TOOLCHAIN_FILE=cmake/avr-gcc.toolchain.cmake \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
     
     - name: Compile Firmware
       run: cmake --build build
