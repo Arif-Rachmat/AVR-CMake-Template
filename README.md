@@ -54,8 +54,6 @@ Default parameters target the **ATmega328P** (e.g., Arduino Uno/Nano). You can o
 
 ## **Quick Starts🛠️**
 
-Run these commands from the root directory of the project:
-
 ### 1. Clone the Repo
 
 Clone the repository and navigate to the project directory:
