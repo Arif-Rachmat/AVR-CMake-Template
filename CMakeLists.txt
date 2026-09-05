@@ -13,6 +13,18 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Enable compile_commands.json generation for LSP / clangd
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Symlink compile_commands.json to the project root for LSP auto-detection
+if(EXISTS "${CMAKE_BINARY_DIR}/compile_commands.json" AND NOT EXISTS "${CMAKE_SOURCE_DIR}/compile_commands.json")
+  execute_process(
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+      "${CMAKE_BINARY_DIR}/compile_commands.json"
+      "${CMAKE_SOURCE_DIR}/compile_commands.json"
+  )
+endif()
+
 # Shared Optimization Flags
 add_compile_options(
     -mmcu=${MCU}

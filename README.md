@@ -52,16 +52,25 @@ Default parameters target the **ATmega328P** (e.g., Arduino Uno/Nano). You can o
 
 ---
 
-## **Build & Flash Commands🛠️**
+## **Quick Starts🛠️**
 
 Run these commands from the root directory of the project:
 
-### 1. Configure the Project
+### 1. Clone the Repo
+
+Clone the repository and navigate to the project directory:
+
+```bash
+git clone https://github.com/Arif-Rachmat/AVR-CMake-Template.git <YOUR_PROJECT_DIR>
+cd <YOUR_PROJECT_DIR>
+```
+
+### 2. Configure the Project
 
 **Standard Configuration (Default: ATmega328P @ 16MHz):**
 
 ```bash
-cmake -B build -DCMAKE_TOOLCHAIN_FILE=cmake/avr-gcc.toolchain.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+cmake -B build -DCMAKE_TOOLCHAIN_FILE=cmake/avr-gcc.toolchain.cmake
 ```
 
 **Targeting a Different MCU (e.g., ATtiny85 @ 8MHz via USBasp):**
@@ -75,7 +84,7 @@ cmake -B build \
   -DAVRDUDE_PORT=usb
 ```
 
-### 2. Compile Firmware
+### 3. Compile Firmware
 
 Build the executable (`.elf`), binary (`.hex`), and output memory usage:
 
@@ -83,7 +92,7 @@ Build the executable (`.elf`), binary (`.hex`), and output memory usage:
 cmake --build build
 ```
 
-### 3. Flash Microcontroller
+### 4. Flash Microcontroller
 
 Upload the firmware to hardware using `avrdude`:
 
@@ -91,7 +100,7 @@ Upload the firmware to hardware using `avrdude`:
 cmake --build build --target flash
 ```
 
-### 4. Clean Build Directory
+### Cleaning Build Directory
 
 Delete all compiled objects and generated output files:
 
@@ -102,11 +111,29 @@ cmake --build build --target clean
 
 ---
 
-## **VS Code Integration**
-This project template is preconfigured for use with VS Code (but not limited to), see the [VS Code folder](.vscode/)
+## **Editor Integration**
+
+### Visual Studio Code (see [VSCode folder](.vscode/))
 1. Install the **C/C++** (`ms-vscode.cpptools`) and **CMake Tools** (`ms-vscode.cmake-tools`) extensions.
 2. Run **CMake: Configure** from the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`).
 3. Build using <kbd>F7</kbd> and flash via the CMake side-bar target menu.
+
+### Zed (see [Zed folder](.zed/))
+1. Open the project folder in [**Zed**](https://zed.dev).
+2. Run the setup task:
+   - Open command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and type `task: spawn`.
+   - Select `CMake: Configure (AVR Toolchain)`.
+3. Compile or flash the target:
+   - Select `CMake: Build Firmware` to compile.
+   - Select `AVR: Upload / Flash Firmware` to flash.
+4. Code completion and register navigation (`<avr/io.h>`) are handled natively via `clangd`.
+
+---
+
+## To-Do List
+- [ ] Add more built in editor support/configurations.
+- [ ] Expand chip target presets and MCU frequency configurations in CMakeLists.txt.
+- [ ] Add documentation for custom `avrdude` programmer types and baud rates.
 
 ---
 

@@ -1,0 +1,22 @@
+[
+  {
+    "label": "CMake: Configure (AVR Toolchain)",
+    "command": "cmake -B build -DCMAKE_TOOLCHAIN_FILE=cmake/avr-gcc.toolchain.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+    "cwd": "$ZED_WORKTREE_ROOT"
+  },
+  {
+    "label": "CMake: Build Firmware",
+    "command": "cmake --build build",
+    "cwd": "$ZED_WORKTREE_ROOT"
+  },
+  {
+    "label": "AVR: Upload / Flash Firmware",
+    "command": "cmake --build build --target upload",
+    "cwd": "$ZED_WORKTREE_ROOT"
+  },
+  {
+    "label": "CMake: Clean Build",
+    "command": "cmake --build build --target clean",
+    "cwd": "$ZED_WORKTREE_ROOT"
+  }
+]

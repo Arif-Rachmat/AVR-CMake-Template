@@ -1,3 +1,6 @@
+# Compilation Database
+compile_commands.json
+
 # Ignore build directory
 build/
 

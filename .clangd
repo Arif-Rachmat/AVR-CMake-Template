@@ -1,0 +1,8 @@
+CompileFlags:
+  Add:
+    - "-Wno-unknown-attributes"
+    - "-Wno-unknown-pragmas"
+
+Diagnostics:
+  UnusedIncludes: Strict
+  MissingIncludes: Strict
