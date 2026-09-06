@@ -29,13 +29,37 @@ Configured out-of-the-box for the **ATmega328P**, it can easily target any AVR c
 
 Ensure the following tools are installed on your host system and available in your system `PATH`:
 
-1. **AVR Toolchain**: `avr-gcc`, `avr-g++`, `avr-objcopy`, `avr-size`.
-   * *Windows*: [Microchip AVR Toolchain](https://www.microchip.com/en-us/tools-resources/develop/microchip-studio/gcc-compilers) or via MSYS2 / WinAVR.
-   * *Linux*: `sudo apt install gcc-avr binutils-avr avr-libc`
-   * *macOS*: `brew install avr-gcc`
-2. **Programmer Utility**: [AVRDUDE](https://github.com/avrdudes/avrdude).
-3. **Build System**: [CMake](https://cmake.org/download/) (v3.16+) and a build generator like [Ninja](https://ninja-build.org/) or GNU [Make].
+- **AVR Toolchain**: [Microchip AVR Toolchain](https://www.microchip.com/en-us/tools-resources/develop/microchip-studio/gcc-compilers)
+- **Programmer Utility**: [AVRDUDE](https://github.com/avrdudes/avrdude).
+- **Build System**: [CMake](https://cmake.org/download/) (v3.16+) and a build generator like [Ninja](https://ninja-build.org/) or GNU [Make].
 
+### 1. Windows (Recommended: use [MSYS2 UCRT64](https://www.msys2.org/))
+
+Open the **MSYS2 UCRT64** terminal and run:
+
+```bash
+pacman -S --needed mingw-w64-ucrt-x86_64-avr-toolchain mingw-w64-ucrt-x86_64-avrdude mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-make
+```
+
+> **Note**: Ensure `C:\msys64\ucrt64\bin` is added to your Windows system `PATH` if invoking these commands outside the MSYS2 terminal.
+
+
+### 2. Linux (Debian / Ubuntu)
+
+Run the following command in your terminal:
+
+```bash
+sudo apt update && sudo apt install -y gcc-avr binutils-avr avr-libc avrdude cmake ninja-build make
+```
+
+
+### 3. macOS (Homebrew)
+
+Run the following command in your terminal:
+
+```bash
+brew install avr-gcc avrdude cmake ninja
+```
 
 ---
 

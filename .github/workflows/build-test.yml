@@ -14,32 +14,46 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: windows-latest
+            shell: msys2 {0}
+          - os: ubuntu-latest
+            shell: bash
+          - os: macos-latest
+            shell: bash
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install AVR Toolchain (Linux)
+    - name: Install Toolchain (Linux)
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc-avr avr-libc cmake ninja-build
+        sudo apt-get install -y gcc-avr binutils-avr avr-libc avrdude cmake ninja-build make
 
-    - name: Install AVR Toolchain (macOS)
+    - name: Install Toolchain (macOS)
       if: runner.os == 'macOS'
       run: |
         brew tap osx-cross/avr
         brew trust osx-cross/avr
-        brew install avr-gcc cmake ninja
+        brew install avr-gcc avrdude cmake ninja
 
-    - name: Install AVR Toolchain (Windows)
+    - name: Install Toolchain (Windows)
       if: runner.os == 'Windows'
-      run: |
-        choco install ninja
-        Invoke-WebRequest -Uri "https://github.com/ZakKemble/avr-gcc-build/releases/download/v14.1.0-1/avr-gcc-14.1.0-x64-windows.zip" -OutFile "avr-gcc.zip"
-        Expand-Archive -Path "avr-gcc.zip" -DestinationPath "C:\avr-gcc"
-        $avrBin = (Get-ChildItem "C:\avr-gcc" -Filter "avr-gcc.exe" -Recurse | Select-Object -First 1).DirectoryName
-        echo "$avrBin" >> $env:GITHUB_PATH
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: UCRT64
+        update: true
+        install: >-
+          mingw-w64-ucrt-x86_64-avr-toolchain
+          mingw-w64-ucrt-x86_64-avrdude
+          mingw-w64-ucrt-x86_64-cmake
+          mingw-w64-ucrt-x86_64-ninja
+          mingw-w64-ucrt-x86_64-make
 
     - name: Configure CMake
       run: cmake -B build -G Ninja "-DCMAKE_TOOLCHAIN_FILE=cmake/avr-gcc.toolchain.cmake"
