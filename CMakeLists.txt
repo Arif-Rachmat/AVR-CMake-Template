@@ -11,7 +11,11 @@ set(AVR_PROJECT_TYPE APPLICATION CACHE STRING "Project type")
 set(AVR_BUILD_EXAMPLES OFF CACHE BOOL "Build library examples")
 set_property(CACHE AVR_PROJECT_TYPE PROPERTY STRINGS APPLICATION LIBRARY)
 
-project(avr_app C CXX)
+# Use the repository directory name as the CMake project/target name.
+# This keeps independently cloned libraries from sharing a generic target name.
+get_filename_component(PROJECT_NAME "${CMAKE_CURRENT_SOURCE_DIR}" NAME)
+string(REPLACE " " "_" PROJECT_NAME "${PROJECT_NAME}")
+project(${PROJECT_NAME} C CXX)
 
 # Standards
 set(CMAKE_C_STANDARD 11)
