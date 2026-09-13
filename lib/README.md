@@ -41,67 +41,23 @@ There is **no need to manually add `add_subdirectory()` or `target_link_librarie
 
 ## Library repository convention
 
-A library repository must declare itself as a library in its **committed `CMakeLists.txt`**. Project type should not be selected through a developer's local CMake command, because consumers clone the repository and need its build definition to be self-contained.
-
-A minimal library can use:
+A library repository uses the same CMake template, but declares its purpose at the top of its committed `CMakeLists.txt`:
 
 ```cmake
-cmake_minimum_required(VERSION 3.16)
-project(avr-example-library C)
-
-add_library(avr-example-library STATIC
-    src/avr_example.c
-)
-
-target_include_directories(avr-example-library
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
+set(AVR_PROJECT_TYPE LIBRARY)
 ```
 
-The important convention is:
-
-```text
-Library directory name = CMake target name
-```
-
-For example:
-
-```text
-lib/
-└── avr-scheduler/
-```
-
-The library must create a target named `avr-scheduler`:
+The application template uses:
 
 ```cmake
-add_library(avr-scheduler STATIC
-    src/avr_sched.c
-)
+set(AVR_PROJECT_TYPE APPLICATION)
 ```
 
-It should expose its public headers through the same target:
+This keeps the project type inside the repository itself. A consumer only needs to clone the library into `lib/` and build the application normally.
 
-```cmake
-target_include_directories(avr-scheduler
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-```
+In library mode, the template creates a static library target instead of an executable and skips application-only steps such as HEX generation and the `flash` target.
 
-The application can then simply use:
-
-```cpp
-#include <avr_sched.h>
-```
-
-and rebuild.
-
-### Development `main.cpp`
-
-A library may contain a development program in `src/main.cpp` while keeping it committed to the repository. This is safe as long as the library's `CMakeLists.txt` explicitly lists only library source files in `add_library()`.
-
-For example:
+A minimal library follows this structure:
 
 ```text
 avr-example-library/
@@ -110,12 +66,40 @@ avr-example-library/
 │   └── avr_example.h
 └── src/
     ├── avr_example.c
-    └── main.cpp          # development program; not part of the library target
+    └── main.cpp          # optional development program
 ```
 
-Do **not** use an unrestricted `file(GLOB_RECURSE ...)` over `src/` to construct a library target, because that can accidentally add `main.cpp` to the library.
+The template automatically excludes `main.c` and `main.cpp` from the library target, so a development program may remain under `src/` without being linked into the library.
 
-For permanent demonstration programs, use an `examples/` directory instead.
+The library target exposes its public headers automatically:
+
+```cmake
+target_include_directories(${PROJECT_NAME}
+    PUBLIC
+        include
+)
+```
+
+The application can then simply use:
+
+```cpp
+#include <avr_example.h>
+```
+
+and rebuild.
+
+### Project naming
+
+The repository directory is used as the project name. Characters that are unsafe for a CMake target name are replaced with `_`.
+
+For example:
+
+```text
+avr-scheduler       -> avr_scheduler
+Base-Template (dev) -> Base_Template_dev
+```
+
+This means project directories may contain spaces, parentheses, or other characters without breaking the CMake configuration.
 
 ## Adding multiple libraries
 
@@ -129,7 +113,7 @@ lib/
 └── avr-display/
 ```
 
-Each library is discovered automatically as long as it contains a `CMakeLists.txt` and follows the target naming convention above.
+Each library is discovered automatically as long as it contains a `CMakeLists.txt` and uses `set(AVR_PROJECT_TYPE LIBRARY)`.
 
 For example:
 
@@ -173,23 +157,24 @@ When the library is consumed from an application, its normal library target is w
 
 ```text
 1. Clone the AVR-CMake-Template
-2. Clone libraries into lib/
-3. Write your application in src/main.cpp
-4. Run cmake -B build
-5. Run cmake --build build
+2. Keep AVR_PROJECT_TYPE as APPLICATION
+3. Clone libraries into lib/
+4. Write your application in src/main.cpp
+5. Run cmake -B build
+6. Run cmake --build build
 ```
 
 ### Library
 
 ```text
-1. Start a library repository using the library CMake convention
-2. Put public headers in include/
-3. Put library implementation files in src/
-4. Declare the library target explicitly with add_library()
-5. Keep development programs out of the library target
+1. Start a repository from the AVR-CMake-Template
+2. Change AVR_PROJECT_TYPE to LIBRARY
+3. Put public headers in include/
+4. Put library implementation files in src/
+5. Keep an optional development main.cpp in src/ if useful
 6. Put permanent demos in examples/
 7. Run cmake -B build
 8. Run cmake --build build
 ```
 
-The goal is to make library consumption feel like adding a folder rather than modifying application build-system code, while keeping each library's own build definition explicit and reproducible.
+The goal is to keep one small, reusable CMake template while making the difference between an application and a library explicit in the repository itself.
