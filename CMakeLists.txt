@@ -86,6 +86,42 @@ else()
     add_executable(${PROJECT_NAME}.elf ${SOURCES})
     target_include_directories(${PROJECT_NAME}.elf PRIVATE include)
 
+    # Automatically discover every library cloned into lib/.
+    # Each library is expected to use its directory name as its CMake target name.
+    file(GLOB LIB_DIRECTORIES CONFIGURE_DEPENDS LIST_DIRECTORIES true
+        "${CMAKE_CURRENT_SOURCE_DIR}/lib/*"
+    )
+
+    set(AVR_AUTO_LIBRARIES)
+
+    foreach(LIB_DIR IN LISTS LIB_DIRECTORIES)
+        if(IS_DIRECTORY "${LIB_DIR}" AND EXISTS "${LIB_DIR}/CMakeLists.txt")
+            get_filename_component(LIB_NAME "${LIB_DIR}" NAME)
+
+            message(STATUS "Adding AVR library: ${LIB_NAME}")
+            add_subdirectory(
+                "${LIB_DIR}"
+                "${CMAKE_BINARY_DIR}/lib/${LIB_NAME}"
+            )
+
+            if(TARGET ${LIB_NAME})
+                list(APPEND AVR_AUTO_LIBRARIES ${LIB_NAME})
+            else()
+                message(WARNING
+                    "Library '${LIB_NAME}' was found in lib/ but did not create "
+                    "a CMake target named '${LIB_NAME}'. It will not be linked automatically."
+                )
+            endif()
+        endif()
+    endforeach()
+
+    if(AVR_AUTO_LIBRARIES)
+        target_link_libraries(${PROJECT_NAME}.elf
+            PRIVATE
+                ${AVR_AUTO_LIBRARIES}
+        )
+    endif()
+
     # Post-build: Extract HEX file
     add_custom_command(
         TARGET ${PROJECT_NAME}.elf POST_BUILD
