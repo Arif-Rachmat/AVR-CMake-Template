@@ -6,22 +6,11 @@ set(F_CPU 16000000UL CACHE STRING "Clock frequency in Hz")
 set(AVRDUDE_PROGRAMMER arduino CACHE STRING "avrdude programmer")
 set(AVRDUDE_PORT COM5 CACHE STRING "avrdude serial port")
 
-# Use the repository directory name as the human-facing project/output name.
+# Use the repository directory name as the project name.
+# Replace characters that are unsafe for CMake target names.
 get_filename_component(PROJECT_NAME "${CMAKE_CURRENT_SOURCE_DIR}" NAME)
-
-# CMake logical target names cannot safely contain arbitrary path characters.
-# Keep the repository name for generated firmware files, but sanitize the
-# logical target name used by CMake.
-set(PROJECT_TARGET_NAME "${PROJECT_NAME}")
-string(REGEX REPLACE "[^A-Za-z0-9_]+" "_" PROJECT_TARGET_NAME "${PROJECT_TARGET_NAME}")
-string(REGEX REPLACE "_+" "_" PROJECT_TARGET_NAME "${PROJECT_TARGET_NAME}")
-string(REGEX REPLACE "^_|_$" "" PROJECT_TARGET_NAME "${PROJECT_TARGET_NAME}")
-
-if(PROJECT_TARGET_NAME STREQUAL "")
-    message(FATAL_ERROR "The project directory name does not produce a valid CMake target name.")
-endif()
-
-project(${PROJECT_TARGET_NAME} C CXX)
+string(REGEX REPLACE "[^A-Za-z0-9_]+" "_" PROJECT_NAME "${PROJECT_NAME}")
+project(${PROJECT_NAME} C CXX)
 
 # Standards
 set(CMAKE_C_STANDARD 11)
@@ -68,11 +57,8 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
     "src/*.cpp"
 )
 
-add_executable(${PROJECT_TARGET_NAME}.elf ${SOURCES})
-set_target_properties(${PROJECT_TARGET_NAME}.elf PROPERTIES
-    OUTPUT_NAME "${PROJECT_NAME}"
-)
-target_include_directories(${PROJECT_TARGET_NAME}.elf PRIVATE include)
+add_executable(${PROJECT_NAME}.elf ${SOURCES})
+target_include_directories(${PROJECT_NAME}.elf PRIVATE include)
 
 # Automatically discover every library cloned into lib/.
 # Each library must create a CMake target named exactly like its directory
@@ -106,7 +92,7 @@ foreach(LIB_DIR IN LISTS LIB_DIRECTORIES)
 endforeach()
 
 if(AVR_AUTO_LIBRARIES)
-    target_link_libraries(${PROJECT_TARGET_NAME}.elf
+    target_link_libraries(${PROJECT_NAME}.elf
         PRIVATE
             ${AVR_AUTO_LIBRARIES}
     )
@@ -114,21 +100,21 @@ endif()
 
 # Post-build: Extract HEX file
 add_custom_command(
-    TARGET ${PROJECT_TARGET_NAME}.elf POST_BUILD
-    COMMAND ${CMAKE_OBJCOPY} -O ihex -R .eeprom $<TARGET_FILE:${PROJECT_TARGET_NAME}.elf> ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex
+    TARGET ${PROJECT_NAME}.elf POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O ihex -R .eeprom $<TARGET_FILE:${PROJECT_NAME}.elf> ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex
     COMMENT "Extracting ${PROJECT_NAME}.hex..."
 )
 
 # Post-build: Print Flash and SRAM usage
 add_custom_command(
-    TARGET ${PROJECT_TARGET_NAME}.elf POST_BUILD
-    COMMAND ${CMAKE_SIZE_UTIL} -t $<TARGET_FILE:${PROJECT_TARGET_NAME}.elf>
+    TARGET ${PROJECT_NAME}.elf POST_BUILD
+    COMMAND ${CMAKE_SIZE_UTIL} -t $<TARGET_FILE:${PROJECT_NAME}.elf>
     COMMENT "Memory Footprint:"
 )
 
 # Custom target: Upload via avrdude
 add_custom_target(flash
     COMMAND avrdude -c ${AVRDUDE_PROGRAMMER} -P ${AVRDUDE_PORT} -p ${MCU} -U flash:w:${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex:i
-    DEPENDS ${PROJECT_TARGET_NAME}.elf
+    DEPENDS ${PROJECT_NAME}.elf
     COMMENT "Flashing firmware to ${MCU}..."
 )
