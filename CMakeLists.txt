@@ -6,6 +6,11 @@ set(F_CPU 16000000UL CACHE STRING "Clock frequency in Hz")
 set(AVRDUDE_PROGRAMMER arduino CACHE STRING "avrdude programmer")
 set(AVRDUDE_PORT COM5 CACHE STRING "avrdude serial port")
 
+# Project mode
+set(AVR_PROJECT_TYPE APPLICATION CACHE STRING "Project type")
+set(AVR_BUILD_EXAMPLES OFF CACHE BOOL "Build library examples")
+set_property(CACHE AVR_PROJECT_TYPE PROPERTY STRINGS APPLICATION LIBRARY)
+
 project(avr_app C CXX)
 
 # Standards
@@ -47,29 +52,54 @@ add_compile_options(
 add_link_options(-mmcu=${MCU} -Wl,--gc-sections)
 
 # Auto-discover C and C++ source files
-file(GLOB_RECURSE SOURCES "src/*.c" "src/*.cpp")
-
-# Build target ELF
-add_executable(${PROJECT_NAME}.elf ${SOURCES})
-target_include_directories(${PROJECT_NAME}.elf PRIVATE include)
-
-# Post-build: Extract HEX file
-add_custom_command(
-    TARGET ${PROJECT_NAME}.elf POST_BUILD
-    COMMAND ${CMAKE_OBJCOPY} -O ihex -R .eeprom $<TARGET_FILE:${PROJECT_NAME}.elf> ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex
-    COMMENT "Extracting ${PROJECT_NAME}.hex..."
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
+    "src/*.c"
+    "src/*.cpp"
 )
 
-# Post-build: Print Flash and SRAM usage
-add_custom_command(
-    TARGET ${PROJECT_NAME}.elf POST_BUILD
-    COMMAND ${CMAKE_SIZE_UTIL} -t $<TARGET_FILE:${PROJECT_NAME}.elf>
-    COMMENT "Memory Footprint:"
-)
+if(AVR_PROJECT_TYPE STREQUAL "LIBRARY")
+    # Library mode: src/main.c/cpp is development-only and is not compiled.
+    list(FILTER SOURCES EXCLUDE REGEX "/main\\.(c|cpp)$")
 
-# Custom target: Upload via avrdude
-add_custom_target(flash
-    COMMAND avrdude -c ${AVRDUDE_PROGRAMMER} -P ${AVRDUDE_PORT} -p ${MCU} -U flash:w:${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex:i
-    DEPENDS ${PROJECT_NAME}.elf
-    COMMENT "Flashing firmware to ${MCU}..."
-)
+    if(SOURCES)
+        add_library(${PROJECT_NAME} STATIC ${SOURCES})
+    else()
+        add_library(${PROJECT_NAME} INTERFACE)
+    endif()
+
+    target_include_directories(${PROJECT_NAME}
+        PUBLIC
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+
+    # Optional examples are separate executables.
+    if(AVR_BUILD_EXAMPLES AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples/CMakeLists.txt")
+        add_subdirectory(examples)
+    endif()
+
+else()
+    # Application mode: src/main.cpp/main.c remains the normal entry point.
+    add_executable(${PROJECT_NAME}.elf ${SOURCES})
+    target_include_directories(${PROJECT_NAME}.elf PRIVATE include)
+
+    # Post-build: Extract HEX file
+    add_custom_command(
+        TARGET ${PROJECT_NAME}.elf POST_BUILD
+        COMMAND ${CMAKE_OBJCOPY} -O ihex -R .eeprom $<TARGET_FILE:${PROJECT_NAME}.elf> ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex
+        COMMENT "Extracting ${PROJECT_NAME}.hex..."
+    )
+
+    # Post-build: Print Flash and SRAM usage
+    add_custom_command(
+        TARGET ${PROJECT_NAME}.elf POST_BUILD
+        COMMAND ${CMAKE_SIZE_UTIL} -t $<TARGET_FILE:${PROJECT_NAME}.elf>
+        COMMENT "Memory Footprint:"
+    )
+
+    # Custom target: Upload via avrdude
+    add_custom_target(flash
+        COMMAND avrdude -c ${AVRDUDE_PROGRAMMER} -P ${AVRDUDE_PORT} -p ${MCU} -U flash:w:${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex:i
+        DEPENDS ${PROJECT_NAME}.elf
+        COMMENT "Flashing firmware to ${MCU}..."
+    )
+endif()
