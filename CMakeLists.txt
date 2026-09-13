@@ -6,13 +6,7 @@ set(F_CPU 16000000UL CACHE STRING "Clock frequency in Hz")
 set(AVRDUDE_PROGRAMMER arduino CACHE STRING "avrdude programmer")
 set(AVRDUDE_PORT COM5 CACHE STRING "avrdude serial port")
 
-# Project mode
-set(AVR_PROJECT_TYPE APPLICATION CACHE STRING "Project type")
-set(AVR_BUILD_EXAMPLES OFF CACHE BOOL "Build library examples")
-set_property(CACHE AVR_PROJECT_TYPE PROPERTY STRINGS APPLICATION LIBRARY)
-
 # Use the repository directory name as the CMake project/target name.
-# This keeps independently cloned libraries from sharing a generic target name.
 get_filename_component(PROJECT_NAME "${CMAKE_CURRENT_SOURCE_DIR}" NAME)
 string(REPLACE " " "_" PROJECT_NAME "${PROJECT_NAME}")
 project(${PROJECT_NAME} C CXX)
@@ -55,91 +49,70 @@ add_compile_options(
 # Linker flags to strip unused functions/data
 add_link_options(-mmcu=${MCU} -Wl,--gc-sections)
 
-# Auto-discover C and C++ source files
+# Application sources.
+# Libraries define their own source lists in their own CMakeLists.txt files.
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
     "src/*.c"
     "src/*.cpp"
 )
 
-if(AVR_PROJECT_TYPE STREQUAL "LIBRARY")
-    # Library mode: src/main.c/cpp is development-only and is not compiled.
-    list(FILTER SOURCES EXCLUDE REGEX "/main\\.(c|cpp)$")
+add_executable(${PROJECT_NAME}.elf ${SOURCES})
+target_include_directories(${PROJECT_NAME}.elf PRIVATE include)
 
-    if(SOURCES)
-        add_library(${PROJECT_NAME} STATIC ${SOURCES})
-    else()
-        add_library(${PROJECT_NAME} INTERFACE)
-    endif()
+# Automatically discover every library cloned into lib/.
+# Each library must create a CMake target named exactly like its directory.
+file(GLOB LIB_DIRECTORIES CONFIGURE_DEPENDS LIST_DIRECTORIES true
+    "${CMAKE_CURRENT_SOURCE_DIR}/lib/*"
+)
 
-    target_include_directories(${PROJECT_NAME}
-        PUBLIC
-            ${CMAKE_CURRENT_SOURCE_DIR}/include
-    )
+set(AVR_AUTO_LIBRARIES)
 
-    # Optional examples are separate executables.
-    if(AVR_BUILD_EXAMPLES AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples/CMakeLists.txt")
-        add_subdirectory(examples)
-    endif()
+foreach(LIB_DIR IN LISTS LIB_DIRECTORIES)
+    if(IS_DIRECTORY "${LIB_DIR}" AND EXISTS "${LIB_DIR}/CMakeLists.txt")
+        get_filename_component(LIB_NAME "${LIB_DIR}" NAME)
 
-else()
-    # Application mode: src/main.cpp/main.c remains the normal entry point.
-    add_executable(${PROJECT_NAME}.elf ${SOURCES})
-    target_include_directories(${PROJECT_NAME}.elf PRIVATE include)
-
-    # Automatically discover every library cloned into lib/.
-    # Each library is expected to use its directory name as its CMake target name.
-    file(GLOB LIB_DIRECTORIES CONFIGURE_DEPENDS LIST_DIRECTORIES true
-        "${CMAKE_CURRENT_SOURCE_DIR}/lib/*"
-    )
-
-    set(AVR_AUTO_LIBRARIES)
-
-    foreach(LIB_DIR IN LISTS LIB_DIRECTORIES)
-        if(IS_DIRECTORY "${LIB_DIR}" AND EXISTS "${LIB_DIR}/CMakeLists.txt")
-            get_filename_component(LIB_NAME "${LIB_DIR}" NAME)
-
-            message(STATUS "Adding AVR library: ${LIB_NAME}")
-            add_subdirectory(
-                "${LIB_DIR}"
-                "${CMAKE_BINARY_DIR}/lib/${LIB_NAME}"
-            )
-
-            if(TARGET ${LIB_NAME})
-                list(APPEND AVR_AUTO_LIBRARIES ${LIB_NAME})
-            else()
-                message(WARNING
-                    "Library '${LIB_NAME}' was found in lib/ but did not create "
-                    "a CMake target named '${LIB_NAME}'. It will not be linked automatically."
-                )
-            endif()
-        endif()
-    endforeach()
-
-    if(AVR_AUTO_LIBRARIES)
-        target_link_libraries(${PROJECT_NAME}.elf
-            PRIVATE
-                ${AVR_AUTO_LIBRARIES}
+        message(STATUS "Adding AVR library: ${LIB_NAME}")
+        add_subdirectory(
+            "${LIB_DIR}"
+            "${CMAKE_BINARY_DIR}/lib/${LIB_NAME}"
         )
+
+        if(TARGET ${LIB_NAME})
+            list(APPEND AVR_AUTO_LIBRARIES ${LIB_NAME})
+        else()
+            message(FATAL_ERROR
+                "Library '${LIB_NAME}' was found in lib/, but its CMakeLists.txt "
+                "did not create a target named '${LIB_NAME}'. "
+                "The library target name must match its directory name."
+            )
+        endif()
     endif()
+endforeach()
 
-    # Post-build: Extract HEX file
-    add_custom_command(
-        TARGET ${PROJECT_NAME}.elf POST_BUILD
-        COMMAND ${CMAKE_OBJCOPY} -O ihex -R .eeprom $<TARGET_FILE:${PROJECT_NAME}.elf> ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex
-        COMMENT "Extracting ${PROJECT_NAME}.hex..."
-    )
-
-    # Post-build: Print Flash and SRAM usage
-    add_custom_command(
-        TARGET ${PROJECT_NAME}.elf POST_BUILD
-        COMMAND ${CMAKE_SIZE_UTIL} -t $<TARGET_FILE:${PROJECT_NAME}.elf>
-        COMMENT "Memory Footprint:"
-    )
-
-    # Custom target: Upload via avrdude
-    add_custom_target(flash
-        COMMAND avrdude -c ${AVRDUDE_PROGRAMMER} -P ${AVRDUDE_PORT} -p ${MCU} -U flash:w:${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex:i
-        DEPENDS ${PROJECT_NAME}.elf
-        COMMENT "Flashing firmware to ${MCU}..."
+if(AVR_AUTO_LIBRARIES)
+    target_link_libraries(${PROJECT_NAME}.elf
+        PRIVATE
+            ${AVR_AUTO_LIBRARIES}
     )
 endif()
+
+# Post-build: Extract HEX file
+add_custom_command(
+    TARGET ${PROJECT_NAME}.elf POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O ihex -R .eeprom $<TARGET_FILE:${PROJECT_NAME}.elf> ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex
+    COMMENT "Extracting ${PROJECT_NAME}.hex..."
+)
+
+# Post-build: Print Flash and SRAM usage
+add_custom_command(
+    TARGET ${PROJECT_NAME}.elf POST_BUILD
+    COMMAND ${CMAKE_SIZE_UTIL} -t $<TARGET_FILE:${PROJECT_NAME}.elf>
+    COMMENT "Memory Footprint:"
+)
+
+# Custom target: Upload via avrdude
+add_custom_target(flash
+    COMMAND avrdude -c ${AVRDUDE_PROGRAMMER} -P ${AVRDUDE_PORT} -p ${MCU} -U flash:w:${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex:i
+    DEPENDS ${PROJECT_NAME}.elf
+    COMMENT "Flashing firmware to ${MCU}..."
+)
