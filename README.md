@@ -8,19 +8,32 @@ Flexible bare-metal development template for the AVR microcontroller family (ATm
 
 Configured out-of-the-box for the **ATmega328P**, it can easily target any AVR chip by passing configuration variables during CMake setup.
 
-
 ---
+
+## **Table of content 📋**
+1. [Directory Structure](#directory-structure-)
+2. [Prerequisites](#prerequisites)
+3. [Quick Starts](#quick-starts️)
+4. [Configuration Options](#configuration-options️)
+5. [Library](#library)
+6. [Editor Integrations](#editor-integration)
+7. [ToDo List](#to-do-list)
+8. [License](#license)
 
 ## **Directory Structure 📂**
 
 ```text
-├── CMakeLists.txt                # Main CMake configuration file
+├── .clangd                         # Clangd configuration for code completion and analysis
+├── .vscode/                        # VS Code configuration directory
+├── .zed/                           # Zed editor configuration directory
 ├── cmake/
-│   └── avr-gcc.toolchain.cmake   # AVR cross-compilation toolchain file
-├── include/                      # Header files (.h / .hpp)
-├── src/                          # Source code (.c / .cpp)
-│   └── main.cpp                  # Application entry point (or main.c)
-└── README.md
+│   └── avr-gcc.toolchain.cmake     # AVR cross-compilation toolchain file
+├── include/                        # Public header files (.h / .hpp)
+├── lib/                            # Local libraries and reusable components
+├── src/                            # Application source code (.c / .cpp)
+│   └── main.cpp                    # Application entry point (or main.c)
+├── CMakeLists.txt                  # Main CMake configuration file
+└── README.md                       # Project documentation
 ```
 
 ---
@@ -60,19 +73,6 @@ Run the following command in your terminal:
 ```bash
 brew install avr-gcc avrdude cmake ninja
 ```
-
----
-
-## **Configuration Options⚙️**
-
-Default parameters target the **ATmega328P** (e.g., Arduino Uno/Nano). You can override them inside `CMakeLists.txt` or pass them via `-D` flags during configuration:
-
-| Option | Default Value | Description | Examples |
-| --- | --- | --- | --- |
-| `MCU` | `atmega328p` | Target microcontroller architecture. | `attiny85`, `atmega2560`, `atmega32u4` |
-| `F_CPU` | `16000000UL` | Clock frequency in Hz. | `8000000UL`, `1000000UL` |
-| `AVRDUDE_PROGRAMMER` | `arduino` | Programmer hardware driver. | `usbasp`, `wiring`, `avrispmkii`, `serialupdi` |
-| `AVRDUDE_PORT` | `COM5` | Upload serial port. | `COM3`, `/dev/ttyUSB0`, `/dev/ttyACM0` |
 
 ---
 
@@ -133,7 +133,69 @@ cmake --build build --target clean
 
 ---
 
-## **Editor Integration**
+## **Configuration Options ⚙️**
+
+Default parameters target the **ATmega328P** (e.g., Arduino Uno/Nano). You can override them inside `CMakeLists.txt` or pass them via `-D` flags during configuration:
+
+| Option | Default Value | Description | Examples |
+| --- | --- | --- | --- |
+| `MCU` | `atmega328p` | Target microcontroller architecture. | `attiny85`, `atmega2560`, `atmega32u4` |
+| `F_CPU` | `16000000UL` | Clock frequency in Hz. | `8000000UL`, `1000000UL` |
+| `AVRDUDE_PROGRAMMER` | `arduino` | Programmer hardware driver. | `usbasp`, `wiring`, `avrispmkii`, `serialupdi` |
+| `AVRDUDE_PORT` | `COM5` | Upload serial port. | `COM3`, `/dev/ttyUSB0`, `/dev/ttyACM0` |
+
+---
+
+## **Library 📚**
+
+This template supports integrating reusable libraries through the `lib/` directory. Each library can be kept self-contained with its own source files, headers, and CMake configuration, or following the exact directory structure of this template . while the main project handles adding and linking it to the application.
+
+A minimal workflow looks like this:
+
+```text
+lib/
+└── my_library/
+    ├── include/
+    │   └── my_library.h
+    ├── src/
+    │   └── my_library.c
+    └── CMakeLists.txt
+```
+
+Make sure the `CMakeLists` of the library expose the header and add the source as static library:
+
+```cmake
+add_library(${PROJECT_NAME} STATIC ${SOURCES})
+target_include_directories(${PROJECT_NAME}
+   PUBLIC
+      include
+)
+```
+
+Or if using this template to build the library, simply set the `AVR_PROJECT_TYPE` variable at the top of `CMakeLists.txt` to `LIBRARY`:
+
+```cmake
+set(AVR_PROJECT_TYPE LIBRARY) 
+```
+
+The application can then use the library normally:
+
+```cpp
+#include <my_library.h>
+
+int main()
+{
+    my_library_init();
+}
+```
+
+This keeps reusable code separated from application-specific code while allowing everything to be built together as a single firmware project.
+
+> For more information about library and building one go to the [lib README](/lib/README.md) page.
+
+---
+
+## **Editor Integration 🔗**
 
 ### Visual Studio Code (see [VSCode folder](.vscode/))
 1. Install the **C/C++** (`ms-vscode.cpptools`) and **CMake Tools** (`ms-vscode.cmake-tools`) extensions.
@@ -152,13 +214,14 @@ cmake --build build --target clean
 
 ---
 
-## To-Do List
+## **To-Do List 📌**
 - [ ] Add more built in editor support/configurations.
-- [ ] Expand chip target presets and MCU frequency configurations in CMakeLists.txt.
+- [ ] Add libraries repository links as the example of directly pulling and integrating a library.
+- [ ] Expand chip target presets and MCU frequency configurations in `CMakeLists.txt`.
 - [ ] Add documentation for custom `avrdude` programmer types and baud rates.
 
 ---
 
-## **License📜**
+## **License 📜**
 
 This project is licensed under the [MIT License](LICENSE) — free for both personal and commercial use.
