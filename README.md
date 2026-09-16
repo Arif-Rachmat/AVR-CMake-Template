@@ -4,6 +4,9 @@ Flexible bare-metal development template for the AVR microcontroller family (ATm
 
 <div align="center">
     <img src="https://skillicons.dev/icons?i=c,cpp,cmake" alt="Languages"/>
+
+[![AVR Firmware CI](https://github.com/Arif-Rachmat/AVR-CMake-Template/actions/workflows/build-test.yml/badge.svg)](https://github.com/Arif-Rachmat/AVR-CMake-Template/actions/workflows/build-test.yml)
+
 </div>
 
 Configured out-of-the-box for the **ATmega328P**, it can easily target any AVR chip by passing configuration variables during CMake setup.
